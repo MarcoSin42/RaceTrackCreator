@@ -1,10 +1,16 @@
 import skimage as ski
 import numpy as np
-import scipy
+import skimage.io as io
+import skimage.util as util
+import skimage.color as color
+import pandas as pd
+
 from skimage.morphology import disk
 from skimage.segmentation import find_boundaries
-from scipy.ndimage import convolve
+from sys import argv
+from os import listdir
 
+from scipy.ndimage import binary_fill_holes
 
 def HoCS(B, min_scale, max_scale, increment, num_bins):
     '''
@@ -32,17 +38,27 @@ def HoCS(B, min_scale, max_scale, increment, num_bins):
         data = []
         for i in boundary_indices:
             # Center mask about (i[0],i[1])
-            #print(f'x: {i[0]} | y: {i[1]}')
             data.append(
                 (B_padded
                   [i[0] - radius - 0: i[0] + radius + 1, 
                    i[1] - radius - 0: i[1] + radius + 1] & kernel).sum()
                 / num_kernel_pixels
             )
-            #print(max(data))
         histograms[((radius - min_scale) // increment) - 1,:],_ =  np.histogram(data, bins=num_bins, range=(0,1.0), density=True)
-    #return histograms[0,:] / num_bins
     return np.concatenate(histograms) / num_bins
 
 if __name__ == '__main__':
     print("Running script")
+    indir, outdir, *_ = argv[1:]
+
+    print(f'Data directory: {indir:20} | Output directectory: {outdir:20}')
+
+    data_files = listdir('../' + indir)
+    outdir = '../' + outdir
+
+    df = pd.Dataframe()
+    for file in data_files:
+        i = util.img_as_bool(io.imread('../' + indir + '/' + file))[:,:,1]
+        hocs_data = HoCS(i, 40, 60, 10, 60)
+
+
